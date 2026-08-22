@@ -73,13 +73,11 @@ jobs:
         run: |
           curl -fL \
             -o devecostudio-mac.zip \
-            "${{ inputs.mac_zip_url }}" &
+            "${{ inputs.mac_zip_url }}"
 
           curl -fL \
             -o commandline-tools-linux-x64.zip \
-            "${{ inputs.cli_zip_url }}" &
-
-          wait
+            "${{ inputs.cli_zip_url }}"
 
       - name: Build package
         run: |
