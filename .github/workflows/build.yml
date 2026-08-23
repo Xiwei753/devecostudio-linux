@@ -89,19 +89,30 @@ jobs:
       - name: Create tarball for other distributions
         working-directory: devecostudio
         run: |
-          if [[ -d pkg/opt/devecostudio ]]; then
-            # pkg/opt/devecostudio is the complete /opt/devecostudio tree;
-            # ship it as a distro-agnostic tarball so non-Arch users can
-            # extract it to /opt without a package manager. The .desktop
-            # file is included at the tarball root.
-            chmod -R u+rw pkg/opt/devecostudio
-            cp pkg/usr/share/applications/devecostudio.desktop pkg/opt/
-            ver=$(grep '^pkgver=' PKGBUILD | cut -d= -f2)
-            tar -C pkg/opt -czf "devecostudio-${ver}-linux-x86_64.tar.gz" devecostudio devecostudio.desktop
-            echo "Created devecostudio-${ver}-linux-x86_64.tar.gz"
-          else
-            echo "pkg/opt/devecostudio not found; skipping tarball"
+          pkgfile=$(find . -maxdepth 1 -name 'devecostudio-*.pkg.tar.zst' -print -quit)
+          if [[ -z "$pkgfile" ]]; then
+            echo "devecostudio package not found; cannot create distro-agnostic tarball" >&2
+            exit 1
           fi
+
+          rm -rf tarball-root
+          mkdir -p tarball-root
+
+          # makepkg -c removes pkg/ after a successful build, so reconstruct only
+          # the files needed for the distro-agnostic tarball from the Arch package.
+          bsdtar -xf "$pkgfile" -C tarball-root \
+            opt/devecostudio \
+            usr/share/applications/devecostudio.desktop
+
+          cp tarball-root/usr/share/applications/devecostudio.desktop \
+            tarball-root/opt/devecostudio.desktop
+
+          ver=$(grep '^pkgver=' PKGBUILD | cut -d= -f2)
+          tar -C tarball-root/opt -czf \
+            "devecostudio-${ver}-linux-x86_64.tar.gz" \
+            devecostudio devecostudio.desktop
+
+          echo "Created devecostudio-${ver}-linux-x86_64.tar.gz"
 
       - name: Upload package
         uses: actions/upload-artifact@v4
